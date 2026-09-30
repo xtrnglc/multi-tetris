@@ -6,6 +6,7 @@ import {
   type RoomStateMessage,
   type ServerMessage,
 } from '@mt/engine';
+import { Predictor } from './prediction';
 
 export interface ConnectionHandlers {
   onOpen(): void;
@@ -116,7 +117,7 @@ export class Session {
   private readonly listeners = new Set<() => void>();
   private conn: ConnectionLike | null = null;
   private outbox: ClientMessage[] = [];
-  private seq = 0;
+  private predictor = new Predictor(0);
   private reconnectDeadline: number | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -167,8 +168,9 @@ export class Session {
 
   sendInput(action: Action): void {
     if (this.state.room?.phase !== 'playing' || !this.conn?.isOpen) return;
-    this.seq += 1;
-    this.conn.send({ type: 'input', seq: this.seq, action });
+    const seq = this.predictor.input(action);
+    this.conn.send({ type: 'input', seq, action });
+    if (this.predictor.state) this.setState({ game: this.predictor.state });
   }
 
   leave(): void {
@@ -191,6 +193,7 @@ export class Session {
   }
 
   private handleOpen(): void {
+    this.predictor.clearPending();
     this.reconnectDeadline = null;
     this.setState({ status: 'open' });
     const room = this.state.room;
@@ -203,9 +206,14 @@ export class Session {
     if (msg.type === 'roomState') {
       this.deps.storage.setItem(tokenKey(msg.code), msg.reconnectToken);
       this.deps.setPath(`/r/${msg.code}`);
+      if (this.predictor.player !== msg.you) this.predictor = new Predictor(msg.you);
+      if (msg.phase === 'lobby') this.predictor.clearPending();
     }
     const hadRoom = this.state.room !== null;
     this.state = reduceServerMessage(this.state, msg, this.deps.now());
+    if (msg.type === 'snapshot') {
+      this.state = { ...this.state, game: this.predictor.snapshot(msg.state, msg.ackSeq) };
+    }
     if (hadRoom && !this.state.room) this.deps.setPath('/');
     this.emit();
   }
