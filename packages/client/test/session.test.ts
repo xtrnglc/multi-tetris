@@ -153,3 +153,47 @@ describe('Session', () => {
     expect(conn.sent).toEqual([{ type: 'createRoom' }]);
   });
 });
+
+describe('Session connection ownership', () => {
+  function multi() {
+    const conns: { conn: FakeConnection; handlers: ConnectionHandlers }[] = [];
+    const session = new Session({
+      connect: (handlers) => {
+        const conn = new FakeConnection();
+        conns.push({ conn, handlers });
+        return conn;
+      },
+      storage: { getItem: () => null, setItem: () => {} },
+      now: () => 1000,
+      setPath: () => {},
+    });
+    session.connect();
+    conns[0]!.handlers.onOpen();
+    return { session, conns };
+  }
+
+  it('leave() while reconnecting cancels the pending reconnect timer', () => {
+    const { session, conns } = multi();
+    conns[0]!.handlers.onMessage(roomState());
+    conns[0]!.handlers.onClose();
+    expect(session.getState().status).toBe('reconnecting');
+    session.leave();
+    expect(conns).toHaveLength(2);
+    vi.advanceTimersByTime(5000);
+    expect(conns).toHaveLength(2);
+  });
+
+  it('ignores events from a connection that is no longer current', () => {
+    const { session, conns } = multi();
+    conns[0]!.handlers.onMessage(roomState());
+    session.leave();
+    conns[1]!.handlers.onOpen();
+    const before = session.getState();
+    conns[0]!.handlers.onMessage(roomState({ code: 'ZZZZ' }));
+    conns[0]!.handlers.onClose();
+    vi.advanceTimersByTime(5000);
+    expect(session.getState()).toBe(before);
+    expect(session.getState().room).toBeNull();
+    expect(conns).toHaveLength(2);
+  });
+});

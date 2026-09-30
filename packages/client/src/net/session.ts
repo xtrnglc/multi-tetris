@@ -119,6 +119,9 @@ export class Session {
   private seq = 0;
   private reconnectDeadline: number | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Identifies the live connection; events from older connections are ignored. */
+  private generation = 0;
 
   constructor(private readonly deps: SessionDeps) {}
 
@@ -132,10 +135,13 @@ export class Session {
   readonly getState = (): SessionState => this.state;
 
   connect(): void {
+    this.clearReconnectTimer();
+    const generation = ++this.generation;
+    const current = () => generation === this.generation;
     this.conn = this.deps.connect({
-      onOpen: () => this.handleOpen(),
-      onMessage: (msg) => this.handleMessage(msg),
-      onClose: () => this.handleClose(),
+      onOpen: () => current() && this.handleOpen(),
+      onMessage: (msg) => current() && this.handleMessage(msg),
+      onClose: () => current() && this.handleClose(),
     });
   }
 
@@ -167,6 +173,7 @@ export class Session {
 
   leave(): void {
     this.stopPing();
+    this.clearReconnectTimer();
     const conn = this.conn;
     this.conn = null;
     conn?.close();
@@ -216,7 +223,13 @@ export class Session {
       }
     }
     this.setState({ status: 'reconnecting' });
-    setTimeout(() => this.connect(), RECONNECT_INTERVAL_MS);
+    this.clearReconnectTimer();
+    this.reconnectTimer = setTimeout(() => this.connect(), RECONNECT_INTERVAL_MS);
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
   }
 
   private startPing(): void {
