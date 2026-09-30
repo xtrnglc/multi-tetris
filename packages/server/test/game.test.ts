@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { spawnPosition } from '@mt/engine';
 import type { RunningApp } from '../src/app';
+import { TestClient } from './testClient';
 import { createPair, sleep, startGame, startTestApp } from './helpers';
 
 let app: RunningApp;
@@ -45,6 +46,36 @@ describe('game loop', () => {
     expect(a.latest('snapshot')!.ackSeq).toBe(60);
   });
 
+  it('never rate-limits softDropOff, so soft drop cannot stick on', async () => {
+    app = await startTestApp();
+    const { a, b } = await createPair(app);
+    await startGame(a, b);
+    for (let seq = 1; seq <= 100; seq++) a.send({ type: 'input', seq, action: 'rotateCW' });
+    a.send({ type: 'input', seq: 101, action: 'softDropOff' });
+    const snap = await a.next('snapshot', (m) => m.ackSeq === 101);
+    expect(snap.ackSeq).toBe(101);
+  });
+
+  it('ignores inputs from a superseded socket (duplicated tab)', async () => {
+    app = await startTestApp();
+    const { a, b, code } = await createPair(app);
+    await startGame(a, b);
+    const token = a.latest('roomState')!.reconnectToken;
+    const type = a.latest('snapshot')!.state.players[0].active!.type;
+    const a2 = await TestClient.connect(app.port);
+    a2.send({ type: 'joinRoom', code, reconnectToken: token });
+    await a2.next('snapshot');
+
+    a.send({ type: 'input', seq: 5, action: 'left' });
+    a.send({ type: 'ping', t: 1 });
+    await a.next('pong');
+    a2.send({ type: 'input', seq: 6, action: 'softDropOff' });
+    const snap = await a2.next('snapshot', (m) => m.ackSeq === 6);
+    expect(snap.state.players[0].active!.x).toBe(spawnPosition(type, 0).x);
+    expect(a2.received.some((m) => m.type === 'snapshot' && m.ackSeq === 5)).toBe(false);
+    await a2.close();
+  });
+
   it('ends on block-out, then returns to the lobby when both choose play again', async () => {
     app = await startTestApp();
     const { a, b } = await createPair(app);
@@ -62,5 +93,34 @@ describe('game loop', () => {
       { connected: true, ready: false },
       { connected: true, ready: false },
     ]);
+  });
+});
+
+describe('play again when the partner leaves', () => {
+  async function gameOver() {
+    app = await startTestApp();
+    const pair = await createPair(app);
+    await startGame(pair.a, pair.b);
+    for (let seq = 1; seq <= 40; seq++) pair.a.send({ type: 'input', seq, action: 'hardDrop' });
+    await pair.a.next('roomState', (m) => m.phase === 'over');
+    await pair.b.next('roomState', (m) => m.phase === 'over');
+    pair.a.drain();
+    pair.b.drain();
+    return pair;
+  }
+
+  it('partner leaves, then the other clicks play again', async () => {
+    const { a, b } = await gameOver();
+    await b.close();
+    await a.next('roomState', (m) => m.players[1] === null);
+    a.send({ type: 'playAgain' });
+    await a.next('roomState', (m) => m.phase === 'lobby');
+  });
+
+  it('the other clicks play again, then the partner leaves', async () => {
+    const { a, b } = await gameOver();
+    a.send({ type: 'playAgain' });
+    await b.close();
+    await a.next('roomState', (m) => m.phase === 'lobby');
   });
 });

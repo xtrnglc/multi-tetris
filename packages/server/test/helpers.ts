@@ -12,7 +12,7 @@ export const TEST_ROOM_OPTIONS: RoomOptions = {
 
 export function startTestApp(
   overrides: Partial<RoomOptions> = {},
-  extra: { staticDir?: string } = {},
+  extra: { staticDir?: string; livenessTimeoutMs?: number; livenessCheckMs?: number } = {},
 ): Promise<RunningApp> {
   return startApp({
     port: 0,

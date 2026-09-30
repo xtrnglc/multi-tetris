@@ -228,3 +228,49 @@ describe('Session connection ownership', () => {
     expect(conns).toHaveLength(2);
   });
 });
+
+describe('Session dead-connection detection', () => {
+  function live() {
+    const conns: { conn: FakeConnection; handlers: ConnectionHandlers }[] = [];
+    const session = new Session({
+      connect: (handlers) => {
+        const conn = new FakeConnection();
+        conns.push({ conn, handlers });
+        return conn;
+      },
+      storage: { getItem: () => null, setItem: () => {} },
+      now: () => Date.now(), // fake timers advance Date too
+      setPath: () => {},
+    });
+    session.connect();
+    conns[0]!.handlers.onOpen();
+    conns[0]!.handlers.onMessage(roomState({ phase: 'playing' }));
+    return { session, conns };
+  }
+
+  it('reconnects and rejoins when no pong arrives', () => {
+    const { session, conns } = live();
+    vi.advanceTimersByTime(10_000);
+    expect(conns[0]!.conn.isOpen).toBe(false);
+    expect(session.getState().status).toBe('reconnecting');
+    vi.advanceTimersByTime(1000);
+    expect(conns).toHaveLength(2);
+    conns[1]!.handlers.onOpen();
+    expect(conns[1]!.conn.sent.at(-1)).toEqual({
+      type: 'joinRoom',
+      code: 'K7QX',
+      reconnectToken: 'tok-1',
+    });
+  });
+
+  it('stays connected while pongs keep arriving', () => {
+    const { session, conns } = live();
+    for (let i = 0; i < 10; i++) {
+      vi.advanceTimersByTime(2000);
+      conns[0]!.handlers.onMessage({ type: 'pong', t: Date.now() });
+    }
+    expect(conns).toHaveLength(1);
+    expect(conns[0]!.conn.isOpen).toBe(true);
+    expect(session.getState().status).toBe('open');
+  });
+});

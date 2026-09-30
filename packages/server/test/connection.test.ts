@@ -60,6 +60,22 @@ describe('disconnects', () => {
   });
 });
 
+describe('liveness', () => {
+  it('terminates silent sockets and pauses the game for the partner', async () => {
+    app = await startTestApp({}, { livenessTimeoutMs: 150, livenessCheckMs: 20 });
+    const { a, b } = await createPair(app);
+    await startGame(a, b);
+    // a goes silent; b keeps pinging
+    const keepAlive = setInterval(() => b.send({ type: 'ping', t: 0 }), 20);
+    try {
+      await b.next('partnerDisconnected');
+      await b.next('roomState', (m) => m.phase === 'paused');
+    } finally {
+      clearInterval(keepAlive);
+    }
+  });
+});
+
 describe('static hosting', () => {
   it('serves index.html for client-side routes like /r/CODE', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'mt-static-'));

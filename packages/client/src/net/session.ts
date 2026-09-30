@@ -58,6 +58,7 @@ export const initialSession: SessionState = {
 const RECONNECT_INTERVAL_MS = 1000;
 const RECONNECT_WINDOW_MS = 30_000;
 const PING_INTERVAL_MS = 2000;
+const PONG_TIMEOUT_MS = 6000;
 
 export function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase();
@@ -125,6 +126,7 @@ export class Session {
   private reconnectDeadline: number | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastPongAt = 0;
   /** Identifies the live connection; events from older connections are ignored. */
   private generation = 0;
 
@@ -210,6 +212,7 @@ export class Session {
   }
 
   private handleMessage(msg: ServerMessage): void {
+    if (msg.type === 'pong') this.lastPongAt = this.deps.now();
     if (msg.type === 'roomState') {
       this.deps.storage.setItem(tokenKey(msg.code), msg.reconnectToken);
       this.deps.setPath(`/r/${msg.code}`);
@@ -249,10 +252,23 @@ export class Session {
 
   private startPing(): void {
     this.stopPing();
-    this.pingTimer = setInterval(
-      () => this.conn?.send({ type: 'ping', t: this.deps.now() }),
-      PING_INTERVAL_MS,
-    );
+    this.lastPongAt = this.deps.now();
+    this.pingTimer = setInterval(() => {
+      const now = this.deps.now();
+      if (now - this.lastPongAt >= PONG_TIMEOUT_MS) {
+        this.dropDeadConnection();
+        return;
+      }
+      this.conn?.send({ type: 'ping', t: now });
+    }, PING_INTERVAL_MS);
+  }
+
+  /** No pong for too long: the socket is dead without a close event. Close it and take the reconnect path. */
+  private dropDeadConnection(): void {
+    const conn = this.conn;
+    this.generation++; // ignore any late events from the dying socket
+    conn?.close(); // intentionally suppresses onclose, so run the close handling ourselves
+    this.handleClose();
   }
 
   private stopPing(): void {

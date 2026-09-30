@@ -54,6 +54,11 @@ export class TestClient {
     }
   }
 
+  /** Marks everything received so far as consumed, so `next` only sees newer messages. */
+  drain(): void {
+    for (let i = 0; i < this.received.length; i++) this.consumed.add(i);
+  }
+
   /** Most recent message of `type`, consumed or not. */
   latest<T extends ServerMessage['type']>(type: T): Msg<T> | undefined {
     return [...this.received].reverse().find((m) => m.type === type) as Msg<T> | undefined;

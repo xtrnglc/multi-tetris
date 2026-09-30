@@ -11,6 +11,9 @@ export interface AppOptions {
   roomOptions?: Partial<RoomOptions>;
   idleExpiryMs?: number;
   sweepIntervalMs?: number;
+  /** Sockets silent for longer than this are terminated (clients ping every 2 s). */
+  livenessTimeoutMs?: number;
+  livenessCheckMs?: number;
 }
 
 export interface RunningApp {
@@ -44,7 +47,20 @@ export async function startApp(options: AppOptions): Promise<RunningApp> {
   });
 
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 });
-  wss.on('connection', (ws) => handleConnection(ws, rooms));
+  const lastSeen = new Map<WebSocket, number>();
+  wss.on('connection', (ws) => {
+    lastSeen.set(ws, Date.now());
+    ws.on('message', () => lastSeen.set(ws, Date.now()));
+    ws.on('close', () => lastSeen.delete(ws));
+    handleConnection(ws, rooms);
+  });
+
+  // Silent drops (Wi-Fi loss, sleep) produce no close for minutes; terminating fires the normal close path.
+  const livenessTimeout = options.livenessTimeoutMs ?? 8000;
+  const livenessTimer = setInterval(() => {
+    const cutoff = Date.now() - livenessTimeout;
+    for (const [ws, seen] of lastSeen) if (seen < cutoff) ws.terminate();
+  }, options.livenessCheckMs ?? 1000);
 
   const sweepTimer = setInterval(() => rooms.sweep(), options.sweepIntervalMs ?? 60_000);
 
@@ -57,6 +73,7 @@ export async function startApp(options: AppOptions): Promise<RunningApp> {
     rooms,
     close: async () => {
       clearInterval(sweepTimer);
+      clearInterval(livenessTimer);
       rooms.disposeAll();
       for (const client of wss.clients) client.terminate();
       wss.close();
@@ -106,6 +123,8 @@ function handleConnection(ws: WebSocket, rooms: RoomManager): void {
       }
     }
     if (!room || player === null) return;
+    // A newer socket may have taken over this slot (duplicated tab); ignore the old one.
+    if (!room.isCurrent(player, client)) return;
     switch (msg.type) {
       case 'ready':
         room.setReady(player, msg.ready);

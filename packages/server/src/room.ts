@@ -113,7 +113,8 @@ export class Room {
 
     if (this.phase === 'lobby' || this.phase === 'over') {
       this.slots[player] = null;
-      this.broadcastRoomState();
+      if (this.phase === 'over' && this.everyoneWantsPlayAgain()) this.backToLobby();
+      else this.broadcastRoomState();
       return;
     }
 
@@ -127,6 +128,11 @@ export class Room {
       graceMs: this.opts.reconnectGraceMs,
     });
     this.broadcastRoomState();
+  }
+
+  /** True if `client` still owns the player's slot (a newer socket may have taken it over). */
+  isCurrent(player: PlayerId, client: RoomClient): boolean {
+    return this.slots[player]?.client === client;
   }
 
   setReady(player: PlayerId, ready: boolean): void {
@@ -146,8 +152,11 @@ export class Room {
       slot.inputWindowStart = now;
       slot.inputsInWindow = 0;
     }
-    if (slot.inputsInWindow >= this.opts.inputsPerSecond) return;
-    slot.inputsInWindow += 1;
+    // softDropOff is idempotent and must never be dropped, or soft drop could stay stuck on.
+    if (action !== 'softDropOff') {
+      if (slot.inputsInWindow >= this.opts.inputsPerSecond) return;
+      slot.inputsInWindow += 1;
+    }
     this.queue.push({ player, seq, action });
   }
 
@@ -156,7 +165,13 @@ export class Room {
     if (this.disposed || this.phase !== 'over' || !slot) return;
     this.touch();
     slot.wantsPlayAgain = true;
-    if (PLAYERS.every((p) => this.slots[p]?.wantsPlayAgain)) this.backToLobby();
+    if (this.everyoneWantsPlayAgain()) this.backToLobby();
+  }
+
+  /** Empty slots (a player who left) count as agreeing. */
+  private everyoneWantsPlayAgain(): boolean {
+    const present = PLAYERS.map((p) => this.slots[p]).filter((s) => s !== null);
+    return present.length > 0 && present.every((s) => s.wantsPlayAgain);
   }
 
   isEmpty(): boolean {
