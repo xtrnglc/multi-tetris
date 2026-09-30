@@ -1,0 +1,165 @@
+import { createBag, drawPiece } from './bag';
+import { collidesWithBoard, createBoard, piecesOverlap } from './board';
+import { MAX_LOCK_RESETS, NEXT_QUEUE_SIZE, SPAWN_X } from './constants';
+import { kickOffsets } from './pieces';
+import type {
+  Action,
+  ActivePiece,
+  GameState,
+  PieceType,
+  PlayerId,
+  PlayerState,
+  Rotation,
+} from './types';
+
+export const PLAYER_IDS: readonly PlayerId[] = [0, 1];
+
+export function otherPlayer(player: PlayerId): PlayerId {
+  return player === 0 ? 1 : 0;
+}
+
+export function spawnPosition(type: PieceType, player: PlayerId): ActivePiece {
+  return { type, x: SPAWN_X[player] + (type === 'O' ? 1 : 0), y: 0, rot: 0 };
+}
+
+export function createGame(seeds: readonly [number, number]): GameState {
+  const state: GameState = {
+    tick: 0,
+    board: createBoard(),
+    players: [createPlayer(seeds[0]), createPlayer(seeds[1])],
+    score: 0,
+    lines: 0,
+    level: 1,
+    lockCount: 0,
+    lastClear: null,
+    over: false,
+  };
+  for (const player of PLAYER_IDS) trySpawn(state, player);
+  return state;
+}
+
+/** Collision against walls, floor, locked cells, and the partner's active piece. */
+export function collides(state: GameState, player: PlayerId, piece: ActivePiece): boolean {
+  if (collidesWithBoard(state.board, piece)) return true;
+  const partner = state.players[otherPlayer(player)].active;
+  return partner !== null && piecesOverlap(piece, partner);
+}
+
+export function applyInput(prev: GameState, player: PlayerId, action: Action): GameState {
+  if (prev.over) return prev;
+  const state = structuredClone(prev);
+  const p = state.players[player];
+  switch (action) {
+    case 'left':
+      if (tryShift(state, player, -1, 0)) afterManualMove(state, player);
+      break;
+    case 'right':
+      if (tryShift(state, player, 1, 0)) afterManualMove(state, player);
+      break;
+    case 'rotateCW':
+      if (tryRotate(state, player, 1)) afterManualMove(state, player);
+      break;
+    case 'rotateCCW':
+      if (tryRotate(state, player, -1)) afterManualMove(state, player);
+      break;
+    case 'softDropOn':
+      p.softDrop = true;
+      break;
+    case 'softDropOff':
+      p.softDrop = false;
+      break;
+    case 'hardDrop':
+    case 'hold':
+      break;
+  }
+  return state;
+}
+
+// ---- internal helpers (all mutate the already-cloned state) ----
+
+function createPlayer(seed: number): PlayerState {
+  const p: PlayerState = {
+    active: null,
+    nextSpawn: null,
+    hold: null,
+    holdUsed: false,
+    queue: [],
+    bag: createBag(seed),
+    softDrop: false,
+    gravityAcc: 0,
+    lockTimer: 0,
+    lockResets: 0,
+  };
+  fillQueue(p);
+  p.nextSpawn = takeNext(p);
+  return p;
+}
+
+function fillQueue(p: PlayerState): void {
+  while (p.queue.length < NEXT_QUEUE_SIZE) {
+    const [piece, bag] = drawPiece(p.bag);
+    p.bag = bag;
+    p.queue.push(piece);
+  }
+}
+
+function takeNext(p: PlayerState): PieceType {
+  const piece = p.queue.shift()!;
+  fillQueue(p);
+  return piece;
+}
+
+/** Spawns `nextSpawn` if possible: game over if locked cells block it, wait if the partner does. */
+function trySpawn(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  if (p.active !== null || p.nextSpawn === null) return;
+  const piece = spawnPosition(p.nextSpawn, player);
+  if (collidesWithBoard(state.board, piece)) {
+    state.over = true;
+    return;
+  }
+  const partner = state.players[otherPlayer(player)].active;
+  if (partner !== null && piecesOverlap(piece, partner)) return;
+  p.active = piece;
+  p.nextSpawn = null;
+  p.gravityAcc = 0;
+  p.lockTimer = 0;
+  p.lockResets = 0;
+}
+
+function tryShift(state: GameState, player: PlayerId, dx: number, dy: number): boolean {
+  const p = state.players[player];
+  if (!p.active) return false;
+  const moved = { ...p.active, x: p.active.x + dx, y: p.active.y + dy };
+  if (collides(state, player, moved)) return false;
+  p.active = moved;
+  return true;
+}
+
+function tryRotate(state: GameState, player: PlayerId, dir: 1 | -1): boolean {
+  const p = state.players[player];
+  const piece = p.active;
+  if (!piece) return false;
+  const to = ((piece.rot + dir + 4) % 4) as Rotation;
+  for (const [dx, dy] of kickOffsets(piece.type, piece.rot, to)) {
+    const candidate = { ...piece, rot: to, x: piece.x + dx, y: piece.y + dy };
+    if (!collides(state, player, candidate)) {
+      p.active = candidate;
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Resting on the floor or locked cells (the partner's piece does not count). */
+function onGround(state: GameState, piece: ActivePiece): boolean {
+  return collidesWithBoard(state.board, { ...piece, y: piece.y + 1 });
+}
+
+function afterManualMove(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  if (p.active && onGround(state, p.active) && p.lockResets < MAX_LOCK_RESETS) {
+    p.lockTimer = 0;
+    p.lockResets += 1;
+  }
+}
