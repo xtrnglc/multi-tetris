@@ -207,7 +207,7 @@ export class Session {
       this.deps.storage.setItem(tokenKey(msg.code), msg.reconnectToken);
       this.deps.setPath(`/r/${msg.code}`);
       if (this.predictor.player !== msg.you) this.predictor = new Predictor(msg.you);
-      if (msg.phase === 'lobby') this.predictor.clearPending();
+      if (msg.phase !== 'playing') this.predictor.clearPending();
     }
     const hadRoom = this.state.room !== null;
     this.state = reduceServerMessage(this.state, msg, this.deps.now());

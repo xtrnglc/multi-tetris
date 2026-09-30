@@ -165,6 +165,20 @@ describe('Session', () => {
     handlers().onMessage({ type: 'snapshot', tick: 1, state: server, ackSeq: 0 });
     expect(session.getState().game!.players[0].active!.x).toBe(3);
   });
+
+  it('drops unacknowledged predictions when the room leaves the playing phase', async () => {
+    const { createGame } = await import('@mt/engine');
+    const { session, handlers } = setup();
+    handlers().onMessage(roomState({ phase: 'playing' }));
+    const server = createGame([1, 2]);
+    server.players[0].active = { type: 'T', x: 4, y: 5, rot: 0 };
+    handlers().onMessage({ type: 'snapshot', tick: 0, state: server, ackSeq: 0 });
+    session.sendInput('left');
+    expect(session.getState().game!.players[0].active!.x).toBe(3);
+    handlers().onMessage(roomState({ phase: 'paused' }));
+    handlers().onMessage({ type: 'snapshot', tick: 1, state: server, ackSeq: 0 });
+    expect(session.getState().game!.players[0].active!.x).toBe(4);
+  });
 });
 
 describe('Session connection ownership', () => {
