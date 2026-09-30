@@ -184,5 +184,13 @@ Vitest across packages.
 
 - `npm run dev`: Vite client + watched server; Vite proxies `/ws`.
 - TypeScript strict, ESLint, Prettier.
-- GitHub Actions CI: typecheck, lint, test on push.
-- Single Node service, Dockerfile, deployed to **Fly.io** (Render as alternative). In-memory state only. `/healthz` for platform health checks.
+- GitHub Actions CI: typecheck, lint, test on every push.
+
+### Deployment (Fly.io)
+- **One Node service** serves the built client assets and the `/ws` WebSocket endpoint on the same origin — no CORS or cross-origin config.
+- **Multi-stage Dockerfile:** install → build `engine`, `client`, `server` → slim runtime image with the server bundle and client `dist/`.
+- **`fly.toml`:** HTTPS on `<app>.fly.dev` (WebSockets as `wss://` on the same host); HTTP health check on `GET /healthz`; auto-stop when idle and auto-start on request.
+- **Single instance required.** Rooms live in server memory, so the app must run on exactly one machine (pinned to 1; no horizontal scaling). Scaling out would split players across machines who could not find each other's room.
+- **Continuous deployment:** a GitHub Actions job runs `fly deploy` on push to `main` after typecheck, lint, and tests pass (uses a `FLY_API_TOKEN` repo secret).
+- Optional custom domain via `fly certs add`.
+- Server restart or idle auto-stop drops in-memory rooms; acceptable since idle stop only occurs with no connected players.
