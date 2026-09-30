@@ -1,13 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useKeyboard } from '../input/useKeyboard';
 import { session } from '../net/sessionInstance';
 import { useSession } from '../net/useSession';
 import { WELL_HEIGHT, WELL_WIDTH, drawBoard } from '../render/board';
+import { ControlsList } from './ControlsList';
 import { GameOverOverlay } from './GameOverOverlay';
+import { clearLabel } from './labels';
+import { Panel } from './Panel';
 import { PlayerSide } from './PlayerSide';
 import { ScoreBar } from './ScoreBar';
 import { useNow } from './useNow';
 import '../styles/game.css';
+import '../styles/overlays.css';
 
 export function GameScreen() {
   const s = useSession();
@@ -16,6 +20,17 @@ export function GameScreen() {
   const game = s.game;
   const now = useNow();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showHelp, setShowHelp] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Slash, not '?': typing '?' needs Shift, which is bound to hold.
+      if (e.code === 'Slash') setShowHelp((v) => !v);
+      if (e.key === 'Escape') setShowHelp(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   useKeyboard(room.phase === 'playing');
 
@@ -51,6 +66,18 @@ export function GameScreen() {
         <div className="panel well">
           <div className="panel-inner well-inner">
             <canvas ref={canvasRef} style={{ width: WELL_WIDTH, height: WELL_HEIGHT }} />
+            {game?.lastClear && game.lines > 0 && (
+              <div key={game.lines} className="callout">
+                {clearLabel(game.lastClear.count)}
+              </div>
+            )}
+            {showHelp && (
+              <div className="overlay help-overlay">
+                <Panel label="CONTROLS">
+                  <ControlsList />
+                </Panel>
+              </div>
+            )}
             {countdown !== null && (
               <div className="overlay">
                 <div className="countdown">{countdown}</div>
@@ -73,6 +100,7 @@ export function GameScreen() {
         {game && <ScoreBar score={game.score} lines={game.lines} level={game.level} />}
       </div>
       {game ? <PlayerSide player={1} me={me} state={game} side="right" /> : <div />}
+      <div className="help-hint">Press / for controls</div>
     </div>
   );
 }
