@@ -1,0 +1,36 @@
+.game-layout { display: grid; grid-template-columns: 150px auto 150px; gap: 10px; align-items: start; }
+
+.player-side { display: flex; flex-direction: column; gap: 10px; }
+.player-side .panel { --frame: color-mix(in srgb, var(--accent) 35%, #6d3fb0); }
+.player-side.right .panel-label { text-align: right; }
+.player-name { font-weight: 700; letter-spacing: 0.12em; color: var(--accent); }
+.player-side.right .player-name { text-align: right; }
+.player-name .you { color: var(--text); }
+.next-list { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.piece-preview { display: block; margin: 0 auto; }
+
+.well-column { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.well-inner { position: relative; padding: 0; }
+.well canvas { display: block; }
+
+.score-bar { display: flex; align-items: center; gap: 24px; font-size: 18px; letter-spacing: 0.1em; }
+.score-bar b { font-family: var(--font-num); }
+.emblem {
+  padding: 6px 56px;
+  background: linear-gradient(180deg, #3fd7c1, #1f7d9a);
+  color: #031a1c;
+  font: 700 26px var(--font-num);
+  clip-path: polygon(0 50%, 14% 0, 86% 0, 100% 50%, 86% 100%, 14% 100%);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 3, 8, 0.6);
+  text-align: center;
+}
+.overlay h2 { font-size: 40px; letter-spacing: 0.3em; margin: 0 0 12px; }
+.countdown { font: 700 120px var(--font-num); }
+.game-over .stats { font-family: var(--font-num); font-size: 18px; margin-bottom: 16px; }
