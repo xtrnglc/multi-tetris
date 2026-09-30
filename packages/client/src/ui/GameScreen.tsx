@@ -57,10 +57,17 @@ export function GameScreen() {
       ? Math.max(1, Math.ceil((s.countdownEndsAt - now) / 1000))
       : null;
   const graceLeft =
-    s.partnerDisconnectedUntil !== null ? Math.max(0, Math.ceil((s.partnerDisconnectedUntil - now) / 1000)) : null;
+    s.partnerDisconnectedUntil !== null
+      ? Math.max(0, Math.ceil((s.partnerDisconnectedUntil - now) / 1000))
+      : null;
 
   return (
-    <div className="game-layout" data-testid="game" data-phase={room.phase} data-lock-count={game?.lockCount ?? 0}>
+    <div
+      className="game-layout"
+      data-testid="game"
+      data-phase={room.phase}
+      data-lock-count={game?.lockCount ?? 0}
+    >
       {game ? <PlayerSide player={0} me={me} state={game} side="left" /> : <div />}
       <div className="well-column">
         <div className="panel well">

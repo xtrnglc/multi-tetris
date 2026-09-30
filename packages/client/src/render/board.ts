@@ -26,7 +26,13 @@ export function drawBoard(ctx: CanvasRenderingContext2D, state: GameState, me: P
   for (const cell of boardDrawList(state, me)) drawCell(ctx, cell);
 }
 
-export function drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string): void {
+export function drawBlock(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  color: string,
+): void {
   ctx.fillStyle = color;
   ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
   const bevel = Math.max(2, Math.round(size / 9));

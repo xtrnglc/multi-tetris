@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { kickOffsets, pieceCells } from '../src/pieces';
 import type { Rotation } from '../src/types';
 
-const sorted = (cells: [number, number][]) =>
-  [...cells].sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+const sorted = (cells: [number, number][]) => [...cells].sort((a, b) => a[1] - b[1] || a[0] - b[0]);
 
 describe('pieceCells', () => {
   it('places a spawn-orientation T relative to its box origin', () => {

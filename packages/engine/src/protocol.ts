@@ -13,7 +13,11 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     reconnectToken: z.string().max(64).optional(),
   }),
   z.object({ type: z.literal('ready'), ready: z.boolean() }),
-  z.object({ type: z.literal('input'), seq: z.number().int().nonnegative(), action: z.enum(ACTIONS) }),
+  z.object({
+    type: z.literal('input'),
+    seq: z.number().int().nonnegative(),
+    action: z.enum(ACTIONS),
+  }),
   z.object({ type: z.literal('playAgain') }),
   z.object({ type: z.literal('ping'), t: z.number() }),
 ]);

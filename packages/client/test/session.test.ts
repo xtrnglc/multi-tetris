@@ -99,7 +99,11 @@ describe('Session', () => {
     const { session, conn, store } = setup();
     store.set('mt:token:K7QX', 'saved-token');
     session.joinRoom(' k7qx ');
-    expect(conn.sent.at(-1)).toEqual({ type: 'joinRoom', code: 'K7QX', reconnectToken: 'saved-token' });
+    expect(conn.sent.at(-1)).toEqual({
+      type: 'joinRoom',
+      code: 'K7QX',
+      reconnectToken: 'saved-token',
+    });
   });
 
   it('stores the reconnect token and updates the URL on roomState', () => {

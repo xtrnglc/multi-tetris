@@ -1,4 +1,11 @@
-import { HIDDEN_ROWS, ghostPiece, pieceCells, type GameState, type PieceType, type PlayerId } from '@mt/engine';
+import {
+  HIDDEN_ROWS,
+  ghostPiece,
+  pieceCells,
+  type GameState,
+  type PieceType,
+  type PlayerId,
+} from '@mt/engine';
 
 export interface DrawCell {
   col: number;
@@ -23,7 +30,8 @@ export function boardDrawList(state: GameState, me: PlayerId): DrawCell[] {
   const ghost = ghostPiece(state, me);
   if (mine && ghost && ghost.y !== mine.y) {
     for (const [x, y] of pieceCells(ghost)) {
-      if (y >= HIDDEN_ROWS) cells.push({ col: x, row: y - HIDDEN_ROWS, type: ghost.type, kind: 'ghost', owner: me });
+      if (y >= HIDDEN_ROWS)
+        cells.push({ col: x, row: y - HIDDEN_ROWS, type: ghost.type, kind: 'ghost', owner: me });
     }
   }
 
@@ -31,7 +39,8 @@ export function boardDrawList(state: GameState, me: PlayerId): DrawCell[] {
     const piece = state.players[owner].active;
     if (!piece) continue;
     for (const [x, y] of pieceCells(piece)) {
-      if (y >= HIDDEN_ROWS) cells.push({ col: x, row: y - HIDDEN_ROWS, type: piece.type, kind: 'active', owner });
+      if (y >= HIDDEN_ROWS)
+        cells.push({ col: x, row: y - HIDDEN_ROWS, type: piece.type, kind: 'active', owner });
     }
   }
   return cells;

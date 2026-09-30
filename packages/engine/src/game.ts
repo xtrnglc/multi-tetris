@@ -104,7 +104,8 @@ export function tick(prev: GameState): GameState {
 export function ghostPiece(state: GameState, player: PlayerId): ActivePiece | null {
   let piece = state.players[player].active;
   if (!piece) return null;
-  while (!collides(state, player, { ...piece, y: piece.y + 1 })) piece = { ...piece, y: piece.y + 1 };
+  while (!collides(state, player, { ...piece, y: piece.y + 1 }))
+    piece = { ...piece, y: piece.y + 1 };
   return piece;
 }
 

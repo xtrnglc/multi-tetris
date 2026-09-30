@@ -22,7 +22,9 @@ export function gameWith(
 }
 
 export function row(filledCols: number[]): string {
-  return Array.from({ length: BOARD_WIDTH }, (_, x) => (filledCols.includes(x) ? 'X' : '.')).join('');
+  return Array.from({ length: BOARD_WIDTH }, (_, x) => (filledCols.includes(x) ? 'X' : '.')).join(
+    '',
+  );
 }
 
 export function fullRowExcept(...gaps: number[]): string {

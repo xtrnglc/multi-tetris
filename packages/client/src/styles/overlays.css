@@ -12,18 +12,49 @@
   animation: callout 1.2s ease-out forwards;
 }
 @keyframes callout {
-  0% { opacity: 0; transform: scale(1.2); }
-  15% { opacity: 1; transform: scale(1); }
-  75% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-20px); }
+  0% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }
 
-.ping { position: fixed; top: 10px; right: 14px; font: 14px var(--font-num); color: var(--text-dim); }
-.ping.bad { color: var(--danger); }
-.help-hint { position: fixed; bottom: 10px; right: 14px; color: var(--text-dim); font-size: 14px; letter-spacing: 0.08em; }
-.help-overlay .panel { min-width: 320px; text-align: left; }
+.ping {
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  font: 14px var(--font-num);
+  color: var(--text-dim);
+}
+.ping.bad {
+  color: var(--danger);
+}
+.help-hint {
+  position: fixed;
+  bottom: 10px;
+  right: 14px;
+  color: var(--text-dim);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+.help-overlay .panel {
+  min-width: 320px;
+  text-align: left;
+}
 
-.narrow-notice { display: none; }
+.narrow-notice {
+  display: none;
+}
 @media (max-width: 899px) {
   .narrow-notice {
     display: grid;

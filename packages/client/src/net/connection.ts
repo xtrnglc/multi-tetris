@@ -7,7 +7,8 @@ export class Connection implements ConnectionLike {
   constructor(url: string, handlers: ConnectionHandlers) {
     this.ws = new WebSocket(url);
     this.ws.onopen = () => handlers.onOpen();
-    this.ws.onmessage = (event) => handlers.onMessage(JSON.parse(String(event.data)) as ServerMessage);
+    this.ws.onmessage = (event) =>
+      handlers.onMessage(JSON.parse(String(event.data)) as ServerMessage);
     this.ws.onclose = () => handlers.onClose();
   }
 

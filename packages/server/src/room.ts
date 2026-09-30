@@ -122,7 +122,10 @@ export class Room {
       this.stopLoop();
       this.graceTimer = setTimeout(() => this.endGame(), this.opts.reconnectGraceMs);
     }
-    this.sendTo(other(player), { type: 'partnerDisconnected', graceMs: this.opts.reconnectGraceMs });
+    this.sendTo(other(player), {
+      type: 'partnerDisconnected',
+      graceMs: this.opts.reconnectGraceMs,
+    });
     this.broadcastRoomState();
   }
 
@@ -287,7 +290,12 @@ export class Room {
   private sendSnapshot(player: PlayerId): void {
     const slot = this.slots[player];
     if (!this.game || !slot) return;
-    this.sendTo(player, { type: 'snapshot', tick: this.game.tick, state: this.game, ackSeq: slot.ackSeq });
+    this.sendTo(player, {
+      type: 'snapshot',
+      tick: this.game.tick,
+      state: this.game,
+      ackSeq: slot.ackSeq,
+    });
   }
 
   private broadcastSnapshot(): void {
@@ -295,7 +303,9 @@ export class Room {
   }
 
   private broadcastRoomState(): void {
-    const players = this.slots.map((s) => (s ? { connected: s.client !== null, ready: s.ready } : null)) as [
+    const players = this.slots.map((s) =>
+      s ? { connected: s.client !== null, ready: s.ready } : null,
+    ) as [
       { connected: boolean; ready: boolean } | null,
       { connected: boolean; ready: boolean } | null,
     ];

@@ -70,7 +70,11 @@ export function roomCodeFromPath(path: string): string | null {
 
 const tokenKey = (code: string) => `mt:token:${code}`;
 
-export function reduceServerMessage(state: SessionState, msg: ServerMessage, now: number): SessionState {
+export function reduceServerMessage(
+  state: SessionState,
+  msg: ServerMessage,
+  now: number,
+): SessionState {
   switch (msg.type) {
     case 'roomState':
       return msg.phase === 'lobby'
@@ -155,7 +159,9 @@ export class Session {
     const code = normalizeCode(rawCode);
     const token = this.deps.storage.getItem(tokenKey(code));
     this.setState({ error: null });
-    this.send(token ? { type: 'joinRoom', code, reconnectToken: token } : { type: 'joinRoom', code });
+    this.send(
+      token ? { type: 'joinRoom', code, reconnectToken: token } : { type: 'joinRoom', code },
+    );
   }
 
   setReady(ready: boolean): void {
@@ -197,7 +203,8 @@ export class Session {
     this.reconnectDeadline = null;
     this.setState({ status: 'open' });
     const room = this.state.room;
-    if (room) this.conn?.send({ type: 'joinRoom', code: room.code, reconnectToken: room.reconnectToken });
+    if (room)
+      this.conn?.send({ type: 'joinRoom', code: room.code, reconnectToken: room.reconnectToken });
     for (const msg of this.outbox.splice(0)) this.conn?.send(msg);
     this.startPing();
   }

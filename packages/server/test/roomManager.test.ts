@@ -4,7 +4,8 @@ import { TEST_ROOM_OPTIONS } from './helpers';
 
 describe('generateCode', () => {
   it('returns 4 characters from the unambiguous alphabet', () => {
-    for (let i = 0; i < 200; i++) expect(generateCode()).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{4}$/);
+    for (let i = 0; i < 200; i++)
+      expect(generateCode()).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{4}$/);
   });
 });
 

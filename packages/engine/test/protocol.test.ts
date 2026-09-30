@@ -4,7 +4,10 @@ import { parseClientMessage } from '../src/protocol';
 describe('parseClientMessage', () => {
   it('accepts every well-formed message type', () => {
     expect(parseClientMessage('{"type":"createRoom"}')).toEqual({ type: 'createRoom' });
-    expect(parseClientMessage('{"type":"ready","ready":true}')).toEqual({ type: 'ready', ready: true });
+    expect(parseClientMessage('{"type":"ready","ready":true}')).toEqual({
+      type: 'ready',
+      ready: true,
+    });
     expect(parseClientMessage('{"type":"input","seq":3,"action":"hardDrop"}')).toEqual({
       type: 'input',
       seq: 3,
@@ -19,9 +22,11 @@ describe('parseClientMessage', () => {
       type: 'joinRoom',
       code: 'K7QX',
     });
-    expect(
-      parseClientMessage('{"type":"joinRoom","code":"K7QX","reconnectToken":"abc"}'),
-    ).toEqual({ type: 'joinRoom', code: 'K7QX', reconnectToken: 'abc' });
+    expect(parseClientMessage('{"type":"joinRoom","code":"K7QX","reconnectToken":"abc"}')).toEqual({
+      type: 'joinRoom',
+      code: 'K7QX',
+      reconnectToken: 'abc',
+    });
   });
 
   it('rejects malformed input', () => {

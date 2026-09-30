@@ -13,9 +13,15 @@ interface PlayerSideProps {
 
 export function PlayerSide({ player, me, state, side }: PlayerSideProps) {
   const ps = state.players[player];
-  const upcoming = (ps.nextSpawn ? [ps.nextSpawn, ...ps.queue] : ps.queue).slice(0, NEXT_QUEUE_SIZE);
+  const upcoming = (ps.nextSpawn ? [ps.nextSpawn, ...ps.queue] : ps.queue).slice(
+    0,
+    NEXT_QUEUE_SIZE,
+  );
   return (
-    <div className={`player-side ${side}`} style={{ '--accent': PLAYER_ACCENTS[player] } as CSSProperties}>
+    <div
+      className={`player-side ${side}`}
+      style={{ '--accent': PLAYER_ACCENTS[player] } as CSSProperties}
+    >
       <Panel label="HOLD" align={side}>
         <PiecePreview type={ps.hold} dim={ps.holdUsed} />
       </Panel>

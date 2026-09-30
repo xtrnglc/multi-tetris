@@ -64,13 +64,28 @@ describe('movement', () => {
 describe('rotation', () => {
   it('rotates in place when free', () => {
     const s = gameWith({ p0: { type: 'T', x: 5, y: 5, rot: 0 } });
-    expect(applyInput(s, 0, 'rotateCW').players[0].active).toEqual({ type: 'T', x: 5, y: 5, rot: 1 });
-    expect(applyInput(s, 0, 'rotateCCW').players[0].active).toEqual({ type: 'T', x: 5, y: 5, rot: 3 });
+    expect(applyInput(s, 0, 'rotateCW').players[0].active).toEqual({
+      type: 'T',
+      x: 5,
+      y: 5,
+      rot: 1,
+    });
+    expect(applyInput(s, 0, 'rotateCCW').players[0].active).toEqual({
+      type: 'T',
+      x: 5,
+      y: 5,
+      rot: 3,
+    });
   });
 
   it('wall-kicks off the left wall', () => {
     const s = gameWith({ p0: { type: 'T', x: -1, y: 5, rot: 1 } });
-    expect(applyInput(s, 0, 'rotateCW').players[0].active).toEqual({ type: 'T', x: 0, y: 5, rot: 2 });
+    expect(applyInput(s, 0, 'rotateCW').players[0].active).toEqual({
+      type: 'T',
+      x: 0,
+      y: 5,
+      rot: 2,
+    });
   });
 
   it("treats the partner's piece as solid during kick tests", () => {

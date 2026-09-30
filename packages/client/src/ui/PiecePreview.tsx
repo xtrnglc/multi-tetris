@@ -6,7 +6,15 @@ import { HOLD_USED_COLOR, PIECE_COLORS } from '../render/colors';
 const BOX_COLS = 4;
 const BOX_ROWS = 2;
 
-export function PiecePreview({ type, size = 20, dim = false }: { type: PieceType | null; size?: number; dim?: boolean }) {
+export function PiecePreview({
+  type,
+  size = 20,
+  dim = false,
+}: {
+  type: PieceType | null;
+  size?: number;
+  dim?: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -27,9 +35,21 @@ export function PiecePreview({ type, size = 20, dim = false }: { type: PieceType
     const offsetX = ((BOX_COLS - width) * size) / 2 - Math.min(...xs) * size;
     const offsetY = ((BOX_ROWS - height) * size) / 2 - Math.min(...ys) * size;
     for (const [x, y] of cells) {
-      drawBlock(ctx, offsetX + x * size, offsetY + y * size, size, dim ? HOLD_USED_COLOR : PIECE_COLORS[type]);
+      drawBlock(
+        ctx,
+        offsetX + x * size,
+        offsetY + y * size,
+        size,
+        dim ? HOLD_USED_COLOR : PIECE_COLORS[type],
+      );
     }
   }, [type, size, dim]);
 
-  return <canvas ref={ref} className="piece-preview" style={{ width: BOX_COLS * size, height: BOX_ROWS * size }} />;
+  return (
+    <canvas
+      ref={ref}
+      className="piece-preview"
+      style={{ width: BOX_COLS * size, height: BOX_ROWS * size }}
+    />
+  );
 }
