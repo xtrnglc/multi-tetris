@@ -76,7 +76,10 @@ export function applyInput(prev: GameState, player: PlayerId, action: Action): G
       p.softDrop = false;
       break;
     case 'hardDrop':
+      hardDrop(state, player);
+      break;
     case 'hold':
+      hold(state, player);
       break;
   }
   return state;
@@ -96,6 +99,34 @@ export function tick(prev: GameState): GameState {
     if (state.over) return state;
   }
   return state;
+}
+
+export function ghostPiece(state: GameState, player: PlayerId): ActivePiece | null {
+  let piece = state.players[player].active;
+  if (!piece) return null;
+  while (!collides(state, player, { ...piece, y: piece.y + 1 })) piece = { ...piece, y: piece.y + 1 };
+  return piece;
+}
+
+function hardDrop(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  if (!p.active) return;
+  let cells = 0;
+  while (tryShift(state, player, 0, 1)) cells += 1;
+  state.score += 2 * cells;
+  if (p.active && onGround(state, p.active)) lockPiece(state, player);
+  else p.lockTimer = 0; // landed on the partner's piece: hover
+}
+
+function hold(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  if (!p.active || p.holdUsed) return;
+  const current = p.active.type;
+  p.nextSpawn = p.hold ?? takeNext(p);
+  p.hold = current;
+  p.holdUsed = true;
+  p.active = null;
+  trySpawn(state, player);
 }
 
 function stepPlayer(state: GameState, player: PlayerId): void {
