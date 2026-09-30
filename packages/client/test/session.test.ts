@@ -1,0 +1,155 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ClientMessage, RoomStateMessage } from '@mt/engine';
+import {
+  Session,
+  initialSession,
+  normalizeCode,
+  reduceServerMessage,
+  roomCodeFromPath,
+  type ConnectionHandlers,
+  type ConnectionLike,
+} from '../src/net/session';
+
+class FakeConnection implements ConnectionLike {
+  isOpen = true;
+  sent: ClientMessage[] = [];
+  send(msg: ClientMessage) {
+    this.sent.push(msg);
+  }
+  close() {
+    this.isOpen = false;
+  }
+}
+
+function roomState(patch: Partial<RoomStateMessage> = {}): RoomStateMessage {
+  return {
+    type: 'roomState',
+    code: 'K7QX',
+    you: 0,
+    players: [{ connected: true, ready: false }, null],
+    phase: 'lobby',
+    reconnectToken: 'tok-1',
+    ...patch,
+  };
+}
+
+function setup() {
+  const conn = new FakeConnection();
+  const store = new Map<string, string>();
+  const paths: string[] = [];
+  let handlers!: ConnectionHandlers;
+  const connect = vi.fn((h: ConnectionHandlers) => {
+    handlers = h;
+    return conn;
+  });
+  const session = new Session({
+    connect,
+    storage: { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => void store.set(k, v) },
+    now: () => 1000,
+    setPath: (p) => paths.push(p),
+  });
+  session.connect();
+  handlers.onOpen();
+  return { session, conn, store, paths, connect, handlers: () => handlers };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('room codes', () => {
+  it('normalizes typed codes', () => {
+    expect(normalizeCode(' k7qx ')).toBe('K7QX');
+  });
+  it('reads codes from /r/CODE paths', () => {
+    expect(roomCodeFromPath('/r/k7qx')).toBe('K7QX');
+    expect(roomCodeFromPath('/r/K7QX/')).toBe('K7QX');
+    expect(roomCodeFromPath('/')).toBeNull();
+    expect(roomCodeFromPath('/r/TOOLONG')).toBeNull();
+  });
+});
+
+describe('reduceServerMessage', () => {
+  it('computes the countdown end from ticks', () => {
+    const s = reduceServerMessage(initialSession, { type: 'gameStart', countdownTicks: 180 }, 1000);
+    expect(s.countdownEndsAt).toBe(4000);
+  });
+  it('records ping from pong', () => {
+    expect(reduceServerMessage(initialSession, { type: 'pong', t: 940 }, 1000).pingMs).toBe(60);
+  });
+  it('clears game state when the room returns to the lobby', () => {
+    const inGame = { ...initialSession, gameOver: { score: 1, lines: 1, level: 1 } };
+    const s = reduceServerMessage(inGame, roomState({ phase: 'lobby' }), 0);
+    expect(s.gameOver).toBeNull();
+    expect(s.room?.code).toBe('K7QX');
+  });
+  it('drops the room on roomNotFound (e.g. a stale rejoin)', () => {
+    const inRoom = { ...initialSession, room: roomState() };
+    const s = reduceServerMessage(inRoom, { type: 'error', reason: 'roomNotFound' }, 0);
+    expect(s.room).toBeNull();
+    expect(s.error).toBe('roomNotFound');
+  });
+});
+
+describe('Session', () => {
+  it('joinRoom normalizes the code and sends a stored reconnect token (page refresh)', () => {
+    const { session, conn, store } = setup();
+    store.set('mt:token:K7QX', 'saved-token');
+    session.joinRoom(' k7qx ');
+    expect(conn.sent.at(-1)).toEqual({ type: 'joinRoom', code: 'K7QX', reconnectToken: 'saved-token' });
+  });
+
+  it('stores the reconnect token and updates the URL on roomState', () => {
+    const { store, paths, handlers } = setup();
+    handlers().onMessage(roomState());
+    expect(store.get('mt:token:K7QX')).toBe('tok-1');
+    expect(paths.at(-1)).toBe('/r/K7QX');
+  });
+
+  it('only sends inputs while playing', () => {
+    const { session, conn, handlers } = setup();
+    handlers().onMessage(roomState({ phase: 'countdown' }));
+    session.sendInput('left');
+    expect(conn.sent.filter((m) => m.type === 'input')).toHaveLength(0);
+    handlers().onMessage(roomState({ phase: 'playing' }));
+    session.sendInput('left');
+    expect(conn.sent.filter((m) => m.type === 'input')).toEqual([
+      { type: 'input', seq: 1, action: 'left' },
+    ]);
+  });
+
+  it('reconnects after a dropped connection and rejoins with its token', () => {
+    const { session, conn, connect, handlers } = setup();
+    handlers().onMessage(roomState({ phase: 'playing' }));
+    handlers().onClose();
+    expect(session.getState().status).toBe('reconnecting');
+    vi.advanceTimersByTime(1000);
+    expect(connect).toHaveBeenCalledTimes(2);
+    handlers().onOpen();
+    expect(conn.sent.at(-1)).toEqual({ type: 'joinRoom', code: 'K7QX', reconnectToken: 'tok-1' });
+  });
+
+  it('queues messages sent before the socket opens', () => {
+    const conn = new FakeConnection();
+    conn.isOpen = false;
+    let handlers!: ConnectionHandlers;
+    const session = new Session({
+      connect: (h) => {
+        handlers = h;
+        return conn;
+      },
+      storage: { getItem: () => null, setItem: () => {} },
+      now: () => 0,
+      setPath: () => {},
+    });
+    session.connect();
+    session.createRoom();
+    expect(conn.sent).toEqual([]);
+    conn.isOpen = true;
+    handlers.onOpen();
+    expect(conn.sent).toEqual([{ type: 'createRoom' }]);
+  });
+});
