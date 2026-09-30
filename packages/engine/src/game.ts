@@ -1,5 +1,5 @@
 import { createBag, drawPiece } from './bag';
-import { collidesWithBoard, createBoard, piecesOverlap } from './board';
+import { clearFullRows, collidesWithBoard, createBoard, piecesOverlap } from './board';
 import {
   LOCK_DELAY_TICKS,
   MAX_LOCK_RESETS,
@@ -8,7 +8,7 @@ import {
   SPAWN_X,
 } from './constants';
 import { kickOffsets, pieceCells } from './pieces';
-import { gravityPerTick } from './scoring';
+import { LINE_SCORES, gravityPerTick, levelForLines } from './scoring';
 import type {
   Action,
   ActivePiece,
@@ -165,8 +165,32 @@ function lockPiece(state: GameState, player: PlayerId): void {
   p.lockResets = 0;
   p.gravityAcc = 0;
   state.lockCount += 1;
+
+  const { board, cleared } = clearFullRows(state.board);
+  if (cleared > 0) {
+    state.board = board;
+    state.score += LINE_SCORES[cleared] * state.level;
+    state.lines += cleared;
+    state.level = levelForLines(state.lines);
+    state.lastClear = { count: cleared, tick: state.tick };
+    nudgeUp(state, otherPlayer(player));
+    if (state.over) return;
+  }
+
   p.nextSpawn = takeNext(p);
   trySpawn(state, player);
+}
+
+/** After rows shift down, move a player's active piece up until it no longer overlaps locked cells. */
+function nudgeUp(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  while (p.active && collidesWithBoard(state.board, p.active)) {
+    if (p.active.y <= 0) {
+      state.over = true;
+      return;
+    }
+    p.active = { ...p.active, y: p.active.y - 1 };
+  }
 }
 
 // ---- internal helpers (all mutate the already-cloned state) ----
