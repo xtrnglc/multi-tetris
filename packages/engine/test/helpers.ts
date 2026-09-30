@@ -1,5 +1,5 @@
 import { BOARD_WIDTH } from '../src/constants';
-import { createGame } from '../src/game';
+import { createGame, tick } from '../src/game';
 import type { ActivePiece, Cell, GameState } from '../src/types';
 
 /**
@@ -27,4 +27,10 @@ export function row(filledCols: number[]): string {
 
 export function fullRowExcept(...gaps: number[]): string {
   return Array.from({ length: BOARD_WIDTH }, (_, x) => (gaps.includes(x) ? '.' : 'X')).join('');
+}
+
+export function runTicks(state: GameState, n: number): GameState {
+  let s = state;
+  for (let i = 0; i < n; i++) s = tick(s);
+  return s;
 }

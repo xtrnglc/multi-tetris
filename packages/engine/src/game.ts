@@ -1,7 +1,14 @@
 import { createBag, drawPiece } from './bag';
 import { collidesWithBoard, createBoard, piecesOverlap } from './board';
-import { MAX_LOCK_RESETS, NEXT_QUEUE_SIZE, SPAWN_X } from './constants';
-import { kickOffsets } from './pieces';
+import {
+  LOCK_DELAY_TICKS,
+  MAX_LOCK_RESETS,
+  NEXT_QUEUE_SIZE,
+  SOFT_DROP_FACTOR,
+  SPAWN_X,
+} from './constants';
+import { kickOffsets, pieceCells } from './pieces';
+import { gravityPerTick } from './scoring';
 import type {
   Action,
   ActivePiece,
@@ -73,6 +80,62 @@ export function applyInput(prev: GameState, player: PlayerId, action: Action): G
       break;
   }
   return state;
+}
+
+/** Float tolerance so that e.g. 60 × (1/60) counts as a full row. */
+const GRAVITY_EPSILON = 1e-9;
+
+export function tick(prev: GameState): GameState {
+  if (prev.over) return prev;
+  const state = structuredClone(prev);
+  state.tick += 1;
+  for (const player of PLAYER_IDS) {
+    trySpawn(state, player);
+    if (state.over) return state;
+    stepPlayer(state, player);
+    if (state.over) return state;
+  }
+  return state;
+}
+
+function stepPlayer(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  if (!p.active) return;
+
+  p.gravityAcc += gravityPerTick(state.level) * (p.softDrop ? SOFT_DROP_FACTOR : 1);
+  while (p.gravityAcc >= 1 - GRAVITY_EPSILON) {
+    p.gravityAcc -= 1;
+    if (tryShift(state, player, 0, 1)) {
+      p.lockTimer = 0;
+      if (p.softDrop) state.score += 1;
+    } else {
+      p.gravityAcc = 0;
+      break;
+    }
+  }
+
+  if (p.active && onGround(state, p.active)) {
+    p.lockTimer += 1;
+    if (p.lockTimer >= LOCK_DELAY_TICKS) lockPiece(state, player);
+  } else {
+    // Airborne or hovering on the partner's piece: the lock timer does not run.
+    p.lockTimer = 0;
+  }
+}
+
+function lockPiece(state: GameState, player: PlayerId): void {
+  const p = state.players[player];
+  const piece = p.active;
+  if (!piece) return;
+  for (const [x, y] of pieceCells(piece)) state.board[y][x] = piece.type;
+  p.active = null;
+  p.holdUsed = false;
+  p.lockTimer = 0;
+  p.lockResets = 0;
+  p.gravityAcc = 0;
+  state.lockCount += 1;
+  p.nextSpawn = takeNext(p);
+  trySpawn(state, player);
 }
 
 // ---- internal helpers (all mutate the already-cloned state) ----
