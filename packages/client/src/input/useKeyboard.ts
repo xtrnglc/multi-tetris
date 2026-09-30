@@ -8,6 +8,8 @@ export function useKeyboard(enabled: boolean): void {
     if (!enabled) return;
     const kb = new KeyboardInput((action) => session.sendInput(action));
     const onDown = (e: KeyboardEvent) => {
+      // Shortcuts (Cmd+C, Ctrl+R...) must not act as game input; on macOS their keyup is swallowed, sticking keys.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (kb.keyDown(e.code, performance.now())) e.preventDefault();
     };
     const onUp = (e: KeyboardEvent) => {
