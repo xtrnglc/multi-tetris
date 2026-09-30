@@ -119,6 +119,9 @@ function handleConnection(ws: WebSocket, rooms: RoomManager): void {
     }
   });
 
+  // Oversized/invalid frames surface as socket errors; without a listener they become uncaught exceptions.
+  ws.on('error', () => ws.terminate());
+
   ws.on('close', () => {
     if (room && player !== null) room.leave(player, client);
   });

@@ -60,6 +60,7 @@ export class Room {
   private loop: ReturnType<typeof setInterval> | null = null;
   private countdownLeft = 0;
   private graceTimer: ReturnType<typeof setTimeout> | null = null;
+  private disposed = false;
 
   constructor(
     readonly code: string,
@@ -70,6 +71,7 @@ export class Room {
   }
 
   join(client: RoomClient, reconnectToken?: string): JoinResult {
+    if (this.disposed) return { ok: false, reason: 'roomFull' };
     this.touch();
     const returning = PLAYERS.find(
       (p) => reconnectToken !== undefined && this.slots[p]?.token === reconnectToken,
@@ -105,7 +107,7 @@ export class Room {
   /** Called when a socket closes. Ignored if the slot has since been taken over by a new socket. */
   leave(player: PlayerId, client: RoomClient): void {
     const slot = this.slots[player];
-    if (!slot || slot.client !== client) return;
+    if (this.disposed || !slot || slot.client !== client) return;
     this.touch();
     slot.client = null;
 
@@ -126,7 +128,7 @@ export class Room {
 
   setReady(player: PlayerId, ready: boolean): void {
     const slot = this.slots[player];
-    if (this.phase !== 'lobby' || !slot) return;
+    if (this.disposed || this.phase !== 'lobby' || !slot) return;
     this.touch();
     slot.ready = ready;
     this.broadcastRoomState();
@@ -135,7 +137,7 @@ export class Room {
 
   input(player: PlayerId, seq: number, action: Action): void {
     const slot = this.slots[player];
-    if (this.phase !== 'playing' || !slot) return;
+    if (this.disposed || this.phase !== 'playing' || !slot) return;
     const now = this.now();
     if (now - slot.inputWindowStart >= 1000) {
       slot.inputWindowStart = now;
@@ -148,7 +150,7 @@ export class Room {
 
   playAgain(player: PlayerId): void {
     const slot = this.slots[player];
-    if (this.phase !== 'over' || !slot) return;
+    if (this.disposed || this.phase !== 'over' || !slot) return;
     this.touch();
     slot.wantsPlayAgain = true;
     if (PLAYERS.every((p) => this.slots[p]?.wantsPlayAgain)) this.backToLobby();
@@ -159,6 +161,7 @@ export class Room {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.stopLoop();
     if (this.graceTimer) clearTimeout(this.graceTimer);
     this.graceTimer = null;
@@ -198,7 +201,7 @@ export class Room {
   }
 
   private step(): void {
-    if (!this.game) return;
+    if (this.disposed || !this.game) return;
     if (this.phase === 'countdown') {
       this.countdownLeft -= 1;
       if (this.countdownLeft <= 0) {
