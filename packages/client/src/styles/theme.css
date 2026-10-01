@@ -204,6 +204,19 @@ body {
   font-size: 14px;
   color: var(--ok);
 }
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.mode-toggle .btn.selected {
+  background: var(--frame-light);
+  box-shadow: inset 0 -3px 0 #3fd7c1;
+}
+.mode-desc {
+  text-align: center;
+  font-size: 14px;
+}
 
 .controls-list {
   display: grid;

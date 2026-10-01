@@ -1,12 +1,16 @@
-export function ScoreBar({ score, lines, level }: { score: number; lines: number; level: number }) {
+import type { GameState } from '@mt/engine';
+import { scoreBarStats } from './labels';
+
+export function ScoreBar({ game }: { game: GameState }) {
+  const { left, center, right } = scoreBarStats(game);
   return (
-    <div className="score-bar">
+    <div className="score-bar" data-testid="score-bar">
       <div className="stat">
-        LINES <b>{lines}</b>
+        {left.label} <b>{left.value}</b>
       </div>
-      <div className="emblem">{score.toLocaleString()}</div>
+      <div className="emblem">{center}</div>
       <div className="stat">
-        LV <b>{level}</b>
+        {right.label} <b>{right.value}</b>
       </div>
     </div>
   );

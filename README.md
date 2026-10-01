@@ -12,6 +12,7 @@ Co-op Tetris for two players on one shared 20-wide well. Create a room, send the
 
 ## How it plays
 
+- Two modes, picked in the lobby by either player: **Marathon** (endless; pieces speed up every 20 lines) and **Sprint 40L** (clear 40 lines together as fast as you can at a fixed speed; the results screen shows your time).
 - Both players drop pieces into the same 20-column well at the same time and share one score.
 - Active pieces are solid to each other; a piece resting on your partner's falling piece hovers instead of locking.
 - Each player has their own hold slot and 5-piece next queue, shown on their side of the well.

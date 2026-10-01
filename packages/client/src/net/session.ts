@@ -2,6 +2,8 @@ import {
   TICKS_PER_SECOND,
   type Action,
   type ClientMessage,
+  type GameMode,
+  type GameOutcome,
   type GameState,
   type RoomStateMessage,
   type ServerMessage,
@@ -28,6 +30,9 @@ export interface SessionDeps {
 }
 
 export interface GameResult {
+  mode: GameMode;
+  result: GameOutcome | null;
+  ticks: number;
   score: number;
   lines: number;
   level: number;
@@ -101,7 +106,14 @@ export function reduceServerMessage(
     case 'gameOver':
       return {
         ...state,
-        gameOver: { score: msg.score, lines: msg.lines, level: msg.level },
+        gameOver: {
+          mode: msg.mode,
+          result: msg.result,
+          ticks: msg.ticks,
+          score: msg.score,
+          lines: msg.lines,
+          level: msg.level,
+        },
         partnerDisconnectedUntil: null,
       };
     case 'partnerDisconnected':
@@ -168,6 +180,10 @@ export class Session {
 
   setReady(ready: boolean): void {
     this.send({ type: 'ready', ready });
+  }
+
+  setMode(mode: GameMode): void {
+    this.send({ type: 'setMode', mode });
   }
 
   playAgain(): void {

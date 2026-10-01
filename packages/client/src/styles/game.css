@@ -91,3 +91,7 @@
   font-size: 18px;
   margin-bottom: 16px;
 }
+.result-time {
+  font: 700 56px var(--font-num);
+  margin-bottom: 4px;
+}

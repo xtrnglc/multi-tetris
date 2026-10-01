@@ -82,10 +82,43 @@ describe('reduceServerMessage', () => {
     expect(reduceServerMessage(initialSession, { type: 'pong', t: 940 }, 1000).pingMs).toBe(60);
   });
   it('clears game state when the room returns to the lobby', () => {
-    const inGame = { ...initialSession, gameOver: { score: 1, lines: 1, level: 1 } };
+    const inGame = {
+      ...initialSession,
+      gameOver: {
+        mode: 'marathon' as const,
+        result: 'toppedOut' as const,
+        ticks: 60,
+        score: 1,
+        lines: 1,
+        level: 1,
+      },
+    };
     const s = reduceServerMessage(inGame, roomState({ phase: 'lobby' }), 0);
     expect(s.gameOver).toBeNull();
     expect(s.room?.code).toBe('K7QX');
+  });
+  it('keeps the mode, outcome and time from gameOver', () => {
+    const s = reduceServerMessage(
+      initialSession,
+      {
+        type: 'gameOver',
+        mode: 'sprint',
+        result: 'cleared',
+        ticks: 4987,
+        score: 900,
+        lines: 40,
+        level: 1,
+      },
+      0,
+    );
+    expect(s.gameOver).toEqual({
+      mode: 'sprint',
+      result: 'cleared',
+      ticks: 4987,
+      score: 900,
+      lines: 40,
+      level: 1,
+    });
   });
   it('drops the room on roomNotFound (e.g. a stale rejoin)', () => {
     const inRoom = { ...initialSession, room: roomState() };
@@ -273,5 +306,13 @@ describe('Session dead-connection detection', () => {
     expect(conns).toHaveLength(1);
     expect(conns[0]!.conn.isOpen).toBe(true);
     expect(session.getState().status).toBe('open');
+  });
+});
+
+describe('setMode', () => {
+  it('sends the chosen mode to the server', () => {
+    const { session, conn } = setup();
+    session.setMode('sprint');
+    expect(conn.sent.at(-1)).toEqual({ type: 'setMode', mode: 'sprint' });
   });
 });

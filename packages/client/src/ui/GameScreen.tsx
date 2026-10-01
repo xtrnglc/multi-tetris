@@ -104,7 +104,7 @@ export function GameScreen() {
             {room.phase === 'over' && s.gameOver && <GameOverOverlay result={s.gameOver} />}
           </div>
         </div>
-        {game && <ScoreBar score={game.score} lines={game.lines} level={game.level} />}
+        {game && <ScoreBar game={game} />}
       </div>
       {game ? <PlayerSide player={1} me={me} state={game} side="right" /> : <div />}
       <div className="help-hint">Press / for controls</div>
