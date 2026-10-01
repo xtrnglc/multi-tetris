@@ -3,7 +3,8 @@
   grid-template-columns: 150px auto 150px;
   gap: 10px;
   align-items: start;
-  padding-top: 60px;
+  /* Headroom for the cats above the well, given up first on short screens (the game is ~649px). */
+  padding-top: clamp(0px, calc(100vh - 655px), 60px);
 }
 
 .player-side {
