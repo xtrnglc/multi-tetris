@@ -21,7 +21,7 @@ export function HomeScreen() {
   }, []);
 
   return (
-    <Panel>
+    <Panel anchor="menu">
       <div className="home">
         <h1 className="title">
           MULTI

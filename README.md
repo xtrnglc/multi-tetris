@@ -17,6 +17,7 @@ Co-op Tetris for two players on one shared 20-wide well. Create a room, send the
 - Active pieces are solid to each other; a piece resting on your partner's falling piece hovers instead of locking.
 - Each player has their own hold slot and 5-piece next queue, shown on their side of the well.
 - Standard guideline controls: SRS rotation with wall kicks, DAS/ARR, soft drop, hard drop, hold.
+- Three pixel-art cats keep you company: **Max** patrols the top of the well and pounces on hard drops, **Raye** naps on the HOLD panel and only wakes when the stack gets dangerous, and shy **Misa** bolts off screen whenever someone scores a Tetris. On the menus they react to your mouse — try clicking Raye.
 
 | Key       | Action                   |
 | --------- | ------------------------ |

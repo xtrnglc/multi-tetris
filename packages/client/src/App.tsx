@@ -1,3 +1,4 @@
+import { CatLayer } from './cats/CatLayer';
 import { useSession } from './net/useSession';
 import { GameScreen } from './ui/GameScreen';
 import { HomeScreen } from './ui/HomeScreen';
@@ -27,6 +28,7 @@ export function App() {
           <GameScreen />
         )}
       </main>
+      <CatLayer screen={!room || room.phase === 'lobby' ? 'menu' : 'game'} />
     </>
   );
 }

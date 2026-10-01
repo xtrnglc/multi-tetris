@@ -21,8 +21,9 @@ export function PlayerSide({ player, me, state, side }: PlayerSideProps) {
     <div
       className={`player-side ${side}`}
       style={{ '--accent': PLAYER_ACCENTS[player] } as CSSProperties}
+      data-cat-anchor={side === 'right' ? 'side-right' : undefined}
     >
-      <Panel label="HOLD" align={side}>
+      <Panel label="HOLD" align={side} anchor={side === 'left' ? 'hold-left' : undefined}>
         <PiecePreview type={ps.hold} dim={ps.holdUsed} />
       </Panel>
       <Panel label="NEXT" align={side}>

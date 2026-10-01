@@ -13,7 +13,7 @@ export function LobbyScreen({ room }: { room: RoomStateMessage }) {
   const link = `${window.location.origin}/r/${room.code}`;
 
   return (
-    <Panel>
+    <Panel anchor="menu">
       <div className="lobby">
         <p className="dim">ROOM CODE</p>
         <div className="room-code" data-testid="room-code">

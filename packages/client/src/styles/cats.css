@@ -1,0 +1,58 @@
+.cat-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+.cat {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  will-change: transform;
+}
+.cat canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.cat-raye canvas {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.cat-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg-top);
+  font: 700 13px var(--font-ui);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.cat-bubble.show {
+  opacity: 1;
+}
+.cat-raye .cat-bubble {
+  /* Her sleeping sprite fills only the lower half of its box; keep the z's by her head. */
+  bottom: 55%;
+  left: 75%;
+  background: none;
+  color: var(--text-dim);
+  animation: cat-zzz 2.4s ease-in-out infinite;
+}
+@keyframes cat-zzz {
+  50% {
+    transform: translate(-30%, -4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cat-raye .cat-bubble {
+    animation: none;
+  }
+}

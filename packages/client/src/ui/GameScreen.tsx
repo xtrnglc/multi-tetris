@@ -72,7 +72,11 @@ export function GameScreen() {
       <div className="well-column">
         <div className="panel well">
           <div className="panel-inner well-inner">
-            <canvas ref={canvasRef} style={{ width: WELL_WIDTH, height: WELL_HEIGHT }} />
+            <canvas
+              ref={canvasRef}
+              data-cat-anchor="well"
+              style={{ width: WELL_WIDTH, height: WELL_HEIGHT }}
+            />
             {game?.lastClear && game.lines > 0 && (
               <div key={game.lines} className="callout">
                 {clearLabel(game.lastClear.count)}

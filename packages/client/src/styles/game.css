@@ -3,6 +3,7 @@
   grid-template-columns: 150px auto 150px;
   gap: 10px;
   align-items: start;
+  padding-top: 60px;
 }
 
 .player-side {
