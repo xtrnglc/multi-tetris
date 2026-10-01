@@ -129,6 +129,9 @@ function handleConnection(ws: WebSocket, rooms: RoomManager): void {
       case 'ready':
         room.setReady(player, msg.ready);
         return;
+      case 'setMode':
+        room.setMode(player, msg.mode);
+        return;
       case 'input':
         room.input(player, msg.seq, msg.action);
         return;

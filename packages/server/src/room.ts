@@ -4,6 +4,7 @@ import {
   createGame,
   tick,
   type Action,
+  type GameMode,
   type GameState,
   type PlayerId,
   type RoomPhase,
@@ -53,6 +54,7 @@ const other = (p: PlayerId): PlayerId => (p === 0 ? 1 : 0);
 
 export class Room {
   phase: RoomPhase = 'lobby';
+  mode: GameMode = 'marathon';
   lastActivity: number;
   private slots: [Slot | null, Slot | null] = [null, null];
   private game: GameState | null = null;
@@ -144,6 +146,20 @@ export class Room {
     if (PLAYERS.every((p) => this.slots[p]?.ready && this.slots[p]?.client)) this.startGame();
   }
 
+  setMode(player: PlayerId, mode: GameMode): void {
+    const slot = this.slots[player];
+    if (this.disposed || this.phase !== 'lobby' || !slot) return;
+    this.touch();
+    if (mode === this.mode) return;
+    this.mode = mode;
+    // Nobody should start a mode they didn't agree to.
+    for (const p of PLAYERS) {
+      const s = this.slots[p];
+      if (s) s.ready = false;
+    }
+    this.broadcastRoomState();
+  }
+
   input(player: PlayerId, seq: number, action: Action): void {
     const slot = this.slots[player];
     if (this.disposed || this.phase !== 'playing' || !slot) return;
@@ -188,7 +204,7 @@ export class Room {
   // ---- lifecycle ----
 
   private startGame(): void {
-    this.game = createGame([randomInt(2 ** 32), randomInt(2 ** 32)]);
+    this.game = createGame([randomInt(2 ** 32), randomInt(2 ** 32)], this.mode);
     this.queue = [];
     for (const p of PLAYERS) {
       const slot = this.slots[p]!;
@@ -259,8 +275,8 @@ export class Room {
     for (const p of PLAYERS) if (this.slots[p] && !this.slots[p]!.client) this.slots[p] = null;
     if (this.game) {
       this.broadcastSnapshot();
-      const { score, lines, level } = this.game;
-      this.broadcast({ type: 'gameOver', score, lines, level });
+      const { mode, result, tick: ticks, score, lines, level } = this.game;
+      this.broadcast({ type: 'gameOver', mode, result, ticks, score, lines, level });
     }
     this.broadcastRoomState();
   }
@@ -333,6 +349,7 @@ export class Room {
         you: p,
         players,
         phase: this.phase,
+        mode: this.mode,
         reconnectToken: slot.token,
       });
     }

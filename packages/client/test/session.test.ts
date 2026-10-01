@@ -28,6 +28,7 @@ function roomState(patch: Partial<RoomStateMessage> = {}): RoomStateMessage {
     you: 0,
     players: [{ connected: true, ready: false }, null],
     phase: 'lobby',
+    mode: 'marathon',
     reconnectToken: 'tok-1',
     ...patch,
   };

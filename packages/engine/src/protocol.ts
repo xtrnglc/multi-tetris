@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ACTIONS, type GameState, type PlayerId } from './types';
+import { ACTIONS, type GameMode, type GameOutcome, type GameState, type PlayerId } from './types';
 
 export const clientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('createRoom') }),
@@ -13,6 +13,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     reconnectToken: z.string().max(64).optional(),
   }),
   z.object({ type: z.literal('ready'), ready: z.boolean() }),
+  z.object({ type: z.literal('setMode'), mode: z.enum(['marathon', 'sprint']) }),
   z.object({
     type: z.literal('input'),
     seq: z.number().int().nonnegative(),
@@ -48,6 +49,7 @@ export interface RoomStateMessage {
   you: PlayerId;
   players: [SlotInfo | null, SlotInfo | null];
   phase: RoomPhase;
+  mode: GameMode;
   reconnectToken: string;
 }
 
@@ -57,7 +59,17 @@ export type ServerMessage =
   | RoomStateMessage
   | { type: 'gameStart'; countdownTicks: number }
   | { type: 'snapshot'; tick: number; state: GameState; ackSeq: number }
-  | { type: 'gameOver'; score: number; lines: number; level: number }
+  | {
+      type: 'gameOver';
+      mode: GameMode;
+      /** null when the room ended the game (partner never reconnected). */
+      result: GameOutcome | null;
+      /** Game ticks played; the run time is ticks / TICKS_PER_SECOND. */
+      ticks: number;
+      score: number;
+      lines: number;
+      level: number;
+    }
   | { type: 'partnerDisconnected'; graceMs: number }
   | { type: 'partnerReconnected' }
   | { type: 'error'; reason: ErrorReason }

@@ -36,4 +36,17 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage('{"type":"input","seq":-1,"action":"left"}')).toBeNull();
     expect(parseClientMessage('{"type":"joinRoom","code":"TOOLONG"}')).toBeNull();
   });
+
+  it('accepts setMode for both modes and rejects anything else', () => {
+    expect(parseClientMessage('{"type":"setMode","mode":"sprint"}')).toEqual({
+      type: 'setMode',
+      mode: 'sprint',
+    });
+    expect(parseClientMessage('{"type":"setMode","mode":"marathon"}')).toEqual({
+      type: 'setMode',
+      mode: 'marathon',
+    });
+    expect(parseClientMessage('{"type":"setMode","mode":"zen"}')).toBeNull();
+    expect(parseClientMessage('{"type":"setMode"}')).toBeNull();
+  });
 });
