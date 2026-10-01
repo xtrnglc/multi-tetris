@@ -1,15 +1,20 @@
 import { BOARD_WIDTH } from '../src/constants';
 import { createGame, tick } from '../src/game';
-import type { ActivePiece, Cell, GameState } from '../src/types';
+import type { ActivePiece, Cell, GameMode, GameState } from '../src/types';
 
 /**
  * A game with fully controlled pieces: no active pieces unless given, nothing waiting to spawn,
  * and optional board rows (20-char strings, '.' = empty, anything else = locked 'Z').
  */
 export function gameWith(
-  opts: { p0?: ActivePiece; p1?: ActivePiece; rows?: Record<number, string> } = {},
+  opts: {
+    p0?: ActivePiece;
+    p1?: ActivePiece;
+    rows?: Record<number, string>;
+    mode?: GameMode;
+  } = {},
 ): GameState {
-  const state = createGame([1, 2]);
+  const state = createGame([1, 2], opts.mode);
   state.players[0].active = opts.p0 ?? null;
   state.players[1].active = opts.p1 ?? null;
   state.players[0].nextSpawn = null;

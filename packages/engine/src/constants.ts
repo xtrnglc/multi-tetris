@@ -9,6 +9,7 @@ export const MAX_LOCK_RESETS = 15;
 export const SOFT_DROP_FACTOR = 20;
 export const NEXT_QUEUE_SIZE = 5;
 export const LINES_PER_LEVEL = 20;
+export const SPRINT_LINES = 40;
 
 /** Left edge of each player's spawn box. O pieces spawn one column further right. */
 export const SPAWN_X: readonly [number, number] = [3, 13];

@@ -6,12 +6,15 @@ import {
   NEXT_QUEUE_SIZE,
   SOFT_DROP_FACTOR,
   SPAWN_X,
+  SPRINT_LINES,
 } from './constants';
 import { kickOffsets, pieceCells } from './pieces';
 import { LINE_SCORES, gravityPerTick, levelForLines } from './scoring';
 import type {
   Action,
   ActivePiece,
+  GameMode,
+  GameOutcome,
   GameState,
   PieceType,
   PlayerId,
@@ -29,7 +32,10 @@ export function spawnPosition(type: PieceType, player: PlayerId): ActivePiece {
   return { type, x: SPAWN_X[player] + (type === 'O' ? 1 : 0), y: 0, rot: 0 };
 }
 
-export function createGame(seeds: readonly [number, number]): GameState {
+export function createGame(
+  seeds: readonly [number, number],
+  mode: GameMode = 'marathon',
+): GameState {
   const state: GameState = {
     tick: 0,
     board: createBoard(),
@@ -37,6 +43,8 @@ export function createGame(seeds: readonly [number, number]): GameState {
     score: 0,
     lines: 0,
     level: 1,
+    mode,
+    result: null,
     lockCount: 0,
     lastClear: null,
     over: false,
@@ -172,8 +180,10 @@ function lockPiece(state: GameState, player: PlayerId): void {
     state.board = board;
     state.score += LINE_SCORES[cleared] * state.level;
     state.lines += cleared;
-    state.level = levelForLines(state.lines);
+    if (state.mode === 'marathon') state.level = levelForLines(state.lines);
     state.lastClear = { count: cleared, tick: state.tick };
+    // Finish before nudging, so a partner pushed off the top by the winning clear can't turn it into a loss.
+    if (state.mode === 'sprint' && state.lines >= SPRINT_LINES) finishGame(state, 'cleared');
     nudgeUp(state, otherPlayer(player));
     if (state.over) return;
   }
@@ -187,11 +197,18 @@ function nudgeUp(state: GameState, player: PlayerId): void {
   const p = state.players[player];
   while (p.active && collidesWithBoard(state.board, p.active)) {
     if (p.active.y <= 0) {
-      state.over = true;
+      finishGame(state, 'toppedOut');
       return;
     }
     p.active = { ...p.active, y: p.active.y - 1 };
   }
+}
+
+/** Ends the game with `result`; the first outcome recorded wins. */
+function finishGame(state: GameState, result: GameOutcome): void {
+  if (state.over) return;
+  state.over = true;
+  state.result = result;
 }
 
 // ---- internal helpers (all mutate the already-cloned state) ----
@@ -234,7 +251,7 @@ function trySpawn(state: GameState, player: PlayerId): void {
   if (p.active !== null || p.nextSpawn === null) return;
   const piece = spawnPosition(p.nextSpawn, player);
   if (collidesWithBoard(state.board, piece)) {
-    state.over = true;
+    finishGame(state, 'toppedOut');
     return;
   }
   const partner = state.players[otherPlayer(player)].active;

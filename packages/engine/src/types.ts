@@ -41,6 +41,10 @@ export interface LineClear {
   tick: number;
 }
 
+export type GameMode = 'marathon' | 'sprint';
+/** How a finished game ended; null while running or when the room ended it (partner never returned). */
+export type GameOutcome = 'cleared' | 'toppedOut';
+
 export interface GameState {
   tick: number;
   board: Board;
@@ -48,6 +52,8 @@ export interface GameState {
   score: number;
   lines: number;
   level: number;
+  mode: GameMode;
+  result: GameOutcome | null;
   /** Increments on every lock; lets observers detect locks cheaply. */
   lockCount: number;
   lastClear: LineClear | null;
